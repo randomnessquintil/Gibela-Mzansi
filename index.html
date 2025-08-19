@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -31,8 +31,8 @@
         </p>
 
         <button id="upload-data-btn"
-                class="bg-green-600 text-white p-4 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 w-full">
-            Upload Sample Routes
+                class="bg-green-600 text-white p-4 rounded-lg font-semibold transition-colors duration-200 w-full disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+            <span id="button-text">Loading...</span>
         </button>
 
         <div id="message-box" class="mt-6 p-4 rounded-lg text-sm text-center hidden"></div>
@@ -53,6 +53,7 @@
         let isAuthReady = false;
 
         const uploadDataBtn = document.getElementById('upload-data-btn');
+        const buttonText = document.getElementById('button-text');
         const messageBox = document.getElementById('message-box');
 
         // Sample data to upload to the database
@@ -89,7 +90,7 @@
             messageBox.className = `mt-6 p-4 rounded-lg text-sm text-center ${type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
             messageBox.style.display = 'block';
             setTimeout(() => {
-                messageBox.style.style = 'none';
+                messageBox.style.display = 'none';
             }, 5000);
         }
 
@@ -107,12 +108,17 @@
                     await signInAnonymously(auth);
                 }
 
+                // This will run once authentication is complete.
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         isAuthReady = true;
+                        uploadDataBtn.disabled = false; // Enable the button
+                        buttonText.textContent = "Upload Sample Routes"; // Change button text
                         console.log("Authentication successful.");
                     } else {
                         console.error("Authentication failed.");
+                        uploadDataBtn.disabled = true;
+                        buttonText.textContent = "Authentication Failed";
                     }
                 });
 
@@ -134,16 +140,23 @@
                 const publicDataPath = `/artifacts/${appId}/public/data/routes`;
                 const routesCollection = collection(db, publicDataPath);
 
+                // Disable the button to prevent multiple uploads
+                uploadDataBtn.disabled = true;
+                buttonText.textContent = "Uploading...";
+
                 for (const route of mockRoutes) {
                     await addDoc(routesCollection, route);
                 }
 
                 showMessage('Routes uploaded successfully!');
                 console.log('Routes uploaded successfully to Firebase!');
+                buttonText.textContent = "Upload Complete!";
 
             } catch (e) {
                 console.error("Error adding documents: ", e);
                 showMessage(`Error adding documents: ${e.message}`, 'error');
+                buttonText.textContent = "Error Uploading";
+                uploadDataBtn.disabled = false;
             }
         });
 
