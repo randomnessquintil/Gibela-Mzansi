@@ -3,165 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Data</title>
+    <title>Route Submission</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-
-    <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md text-center">
-        <h1 class="text-2xl font-bold text-gray-800 mb-4">Upload Initial Route Data</h1>
-        <p class="text-gray-600 mb-6">
-            Click the button below to add a few sample taxi routes to your database.
-            <br>
-            <span class="text-sm text-gray-400">This will only work if the database is currently empty.</span>
-        </p>
-
-        <button id="upload-data-btn"
-                class="bg-green-600 text-white p-4 rounded-lg font-semibold transition-colors duration-200 w-full disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-            <span id="button-text">Loading...</span>
-        </button>
-
-        <div id="message-box" class="mt-6 p-4 rounded-lg text-sm text-center hidden"></div>
-        
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // Your Firebase configuration and app ID are automatically provided by the Canvas environment.
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        // IMPORTANT: We are now using the Firebase configuration and auth token
+        // that are automatically provided by the environment.
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-        let db, auth;
-        let isAuthReady = false;
-
-        const uploadDataBtn = document.getElementById('upload-data-btn');
-        const buttonText = document.getElementById('button-text');
-        const messageBox = document.getElementById('message-box');
-
-        // Sample data to upload to the database
-        const mockRoutes = [
-            {
-                destination: 'Soweto',
-                rank: 'Bree Street Taxi Rank',
-                stops: ['Baragwanath Hospital', 'Orlando Stadium', 'Maponya Mall'],
-                fare: 'R15 - R20',
-                mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d114624.96574312213!2d27.854124970425096!3d-26.23072237937397!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e95085e6834d8bd%3A0xe54e2098d6c75727!2sSoweto%2C%20South%20Africa!5e0!3m2!1sen!2sus!4v1628045622171!5m2!1sen!2sus',
-                destination_lower: 'soweto'
-            },
-            {
-                destination: 'Sandton',
-                rank: 'Noord Street Taxi Rank',
-                stops: ['Rosebank Mall', 'Marlboro Gautrain Station'],
-                fare: 'R18 - R25',
-                mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57317.39167389369!2d27.99427020084093!3d-26.095795856417725!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e9573880a31184f%3A0xc3c604618e4c7314!2sSandton%2C%20South%20Africa!5e0!3m2!1sen!2sus!4v1628045622171!5m2!1sen!2sus',
-                destination_lower: 'sandton'
-            },
-            {
-                destination: 'Pretoria',
-                rank: 'Westgate Taxi Rank',
-                stops: ['Centurion Mall', 'Unisa'],
-                fare: 'R35 - R45',
-                mapLink: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d57579.03451551065!2d28.1884107567794!3d-25.746014389033333!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1e956214300305a3%3A0x6a19f9f8e40428ef!2sPretoria!5e0!3m2!1sen!2sus!4v1628045622171!5m2!1sen!2sus',
-                destination_lower: 'pretoria'
-            }
-        ];
-
-        // Function to show a message to the user
-        function showMessage(message, type = 'success') {
+        // Error message handling
+        function showMessage(message, isError = true) {
+            const messageBox = document.getElementById('message-box');
             messageBox.textContent = message;
-            messageBox.className = `mt-6 p-4 rounded-lg text-sm text-center ${type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            messageBox.className = `p-3 mt-4 rounded-lg text-sm text-center font-medium ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
             messageBox.style.display = 'block';
-            setTimeout(() => {
-                messageBox.style.display = 'none';
-            }, 5000);
         }
 
-        // Initialize Firebase and set up authentication
-        const initializeFirebase = async () => {
-            try {
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+        let db;
+        let auth;
+        let userId;
 
-                // Sign in the user. We use a custom token if available, otherwise anonymously.
+        window.onload = async function() {
+            try {
+                // Initialize Firebase app and services using the provided config.
+                if (!firebaseConfig) {
+                    throw new Error("Firebase configuration not found. Please try reloading the page.");
+                }
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                // Use the provided custom token to sign in, or sign in anonymously as a fallback.
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
                     await signInAnonymously(auth);
                 }
-
-                // This will run once authentication is complete.
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        isAuthReady = true;
-                        uploadDataBtn.disabled = false; // Enable the button
-                        buttonText.textContent = "Upload Sample Routes"; // Change button text
-                        console.log("Authentication successful.");
-                    } else {
-                        console.error("Authentication failed.");
-                        uploadDataBtn.disabled = true;
-                        buttonText.textContent = "Authentication Failed";
-                    }
-                });
+                
+                // Get the current user ID
+                userId = auth.currentUser.uid;
+                
+                showMessage("App initialized successfully. You are ready to submit routes!", false);
+                console.log("Firebase App Initialized for user: " + userId);
 
             } catch (error) {
-                console.error("Error initializing Firebase:", error);
-                showMessage(`Error initializing app: ${error.message}`, 'error');
+                console.error("Error initializing app:", error);
+                showMessage(`Error initializing app: Firebase: Error (${error.code || error.message}).`);
             }
         };
 
-        // Event listener for the upload button
-        uploadDataBtn.addEventListener('click', async () => {
-            if (!isAuthReady) {
-                showMessage('App is not ready yet. Please wait a moment.', 'error');
+        async function submitRoute() {
+            // Get the route from the input field
+            const routeInput = document.getElementById('route-input');
+            const route = routeInput.value.trim();
+
+            if (route === "") {
+                showMessage("Please enter a valid route.", true);
                 return;
             }
 
             try {
-                // The public data path to which we will add the routes
-                const publicDataPath = `/artifacts/${appId}/public/data/routes`;
-                const routesCollection = collection(db, publicDataPath);
+                // Add the new route to the 'routes' collection
+                const docRef = await addDoc(collection(db, "routes"), {
+                    userId: userId,
+                    route: route,
+                    timestamp: new Date()
+                });
 
-                // Disable the button to prevent multiple uploads
-                uploadDataBtn.disabled = true;
-                buttonText.textContent = "Uploading...";
-
-                for (const route of mockRoutes) {
-                    await addDoc(routesCollection, route);
-                }
-
-                showMessage('Routes uploaded successfully!');
-                console.log('Routes uploaded successfully to Firebase!');
-                buttonText.textContent = "Upload Complete!";
-
+                showMessage("Route submitted successfully!", false);
+                console.log("Document written with ID: ", docRef.id);
+                routeInput.value = ""; // Clear the input field
             } catch (e) {
-                console.error("Error adding documents: ", e);
-                showMessage(`Error adding documents: ${e.message}`, 'error');
-                buttonText.textContent = "Error Uploading";
-                uploadDataBtn.disabled = false;
+                console.error("Error adding document: ", e);
+                showMessage("Error submitting route. Please try again.", true);
             }
-        });
-
-        // Initialize everything when the window loads
-        window.onload = initializeFirebase;
+        }
+        
+        // Attach the submit function to the button click event
+        window.submitRoute = submitRoute;
     </script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Route Submission Container -->
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-sm">
+
+        <!-- Header -->
+        <h1 class="text-3xl font-extrabold text-gray-900 text-center mb-6">
+            Submit a Route
+        </h1>
+
+        <!-- Input Field -->
+        <div class="mb-4">
+            <input type="text" id="route-input" placeholder="Enter your route name or description"
+                   class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200">
+        </div>
+
+        <!-- Submit Button -->
+        <div class="mb-4">
+            <button onclick="submitRoute()"
+                    class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-indigo-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Submit Route
+            </button>
+        </div>
+        
+        <!-- Status/Error Message Box -->
+        <div id="message-box" class="hidden text-center"></div>
+
+    </div>
+
 </body>
 </html>
