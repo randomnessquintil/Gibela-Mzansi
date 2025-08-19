@@ -5,18 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Route Submission</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Firebase libraries from a public CDN -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // IMPORTANT: We are now using the Firebase configuration and auth token
-        // that are automatically provided by the environment.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // IMPORTANT: PASTE YOUR FIREBASE CONFIGURATION HERE
+        // 1. Go to your Firebase project console.
+        // 2. Select 'Project settings' (gear icon).
+        // 3. In the 'General' tab, scroll down to the 'Your apps' section.
+        // 4. Click the '< >' icon for a web app and copy the `firebaseConfig` object.
+        // 5. Paste it below, replacing the placeholder object.
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtnv7sMohzZRYmMRwzyuXRz_7Zl-IQae8",
+            authDomain: "gibela-mzansi-dbs.firebaseapp.com",
+            projectId: "gibela-mzansi-dbs",
+            storageBucket: "gibela-mzansi-dbs.firebasestorage.app",
+            messagingSenderId: "308277262511",
+            appId: "1:308277262511:web:1e52cff0eaa7740deffc5a",
+            measurementId: "G-H3Y6V47GS9"
+        };
 
-        // Error message handling
+        // UI message handling
         function showMessage(message, isError = true) {
             const messageBox = document.getElementById('message-box');
             messageBox.textContent = message;
@@ -24,40 +35,35 @@
             messageBox.style.display = 'block';
         }
 
+        // Global variables for Firebase services
         let db;
         let auth;
         let userId;
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
 
-        window.onload = async function() {
-            try {
-                // Initialize Firebase app and services using the provided config.
-                if (!firebaseConfig) {
-                    throw new Error("Firebase configuration not found. Please try reloading the page.");
-                }
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // Use the provided custom token to sign in, or sign in anonymously as a fallback.
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                // Get the current user ID
-                userId = auth.currentUser.uid;
-                
+        // This listener ensures we only start interacting with Firestore
+        // after the user has been authenticated.
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
                 showMessage("App initialized successfully. You are ready to submit routes!", false);
                 console.log("Firebase App Initialized for user: " + userId);
-                console.log("The full collection path for your data is: artifacts/" + appId + "/users/" + userId + "/routes");
-
-            } catch (error) {
-                console.error("Error initializing app:", error);
-                showMessage(`Error initializing app: Firebase: Error (${error.code || error.message}).`);
+            } else {
+                // User is signed out or not yet signed in.
+                // We sign in anonymously as a fallback.
+                try {
+                    await signInAnonymously(auth);
+                } catch (error) {
+                    console.error("Error signing in anonymously:", error);
+                    showMessage("Error initializing app. Please check your Firebase configuration and try again.", true);
+                }
             }
-        };
+        });
 
+        // This function will be called when the submit button is clicked
         async function submitRoute() {
             // Get the route from the input field
             const routeInput = document.getElementById('route-input');
@@ -75,11 +81,9 @@
             }
 
             try {
-                // Correct path to the private collection for your user.
-                const userRouteCollectionPath = `artifacts/${appId}/users/${userId}/routes`;
-
-                // Add the new route to the 'routes' collection
-                const docRef = await addDoc(collection(db, userRouteCollectionPath), {
+                // Use a generic collection name for simplicity, as Firebase security rules
+                // will handle the user-specific path.
+                const docRef = await addDoc(collection(db, `routes-${userId}`), {
                     route: route,
                     timestamp: new Date()
                 });
@@ -89,7 +93,7 @@
                 routeInput.value = ""; // Clear the input field
             } catch (e) {
                 console.error("Error adding document: ", e);
-                showMessage("Error submitting route. Please try again.", true);
+                showMessage("Error submitting route. Please check your Firestore security rules. Error: " + e.message, true);
             }
         }
         
