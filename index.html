@@ -1,285 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!--
-      This is the header section of our HTML document. It contains important
-      metadata that tells the browser how to render the page.
-    -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gibela Mzansi</title>
-    <!--
-      We're using the Tailwind CSS framework for styling. It provides utility classes
-      that we use directly in our HTML to style everything without writing custom CSS.
-    -->
+    <!-- We're using Tailwind CSS for beautiful styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- We're using the Inter font for a modern and clean look. -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /*
-          This is a small block of custom CSS to set the font and ensure the
-          app takes up the full screen height.
-        */
         body {
             font-family: 'Inter', sans-serif;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            background-color: #f0f4f8;
         }
-
-        /* Styles for the loading spinner */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border-left-color: #1e40af;
-            animation: spin 1s ease infinite;
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 0.5rem;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1rem;
         }
-
-        /* Custom style for a placeholder vehicle image */
-        .vehicle-image {
-          background-image: url('https://placehold.co/600x400/3B82F6/FFFFFF?text=Taxi');
-          background-size: cover;
-          background-position: center;
-          height: 200px;
-          border-radius: 1.5rem;
-          margin-bottom: 1rem;
+        .route-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-
-        /*
-          This makes the map container take up remaining space and
-          be scrollable.
-        */
-        .route-details-map {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .route-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        }
+        .input-group {
+            position: relative;
+        }
+        .input-group input {
+            padding-right: 2.5rem;
+        }
+        .input-group .icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gray-100 flex flex-col items-center">
+    <div class="container bg-white shadow-lg rounded-xl p-6 mt-8">
+        <!-- App Header -->
+        <div class="flex items-center space-x-4 mb-6">
+            <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            <h1 class="text-3xl font-bold text-gray-900">Gibela Mzansi</h1>
+        </div>
 
-    <!-- The main container for the app. It uses flexbox to arrange content. -->
-    <div class="flex flex-col h-full w-full p-4 space-y-4">
-        
-        <!-- App Title and Header -->
-        <header class="text-center p-4">
-            <h1 class="text-3xl font-bold text-blue-600">Gibela Mzansi</h1>
-            <p class="text-gray-600 mt-2">Find a taxi route from your location.</p>
-        </header>
-
-        <!-- Main Content Area -->
-        <main id="main-content" class="flex-1 flex flex-col space-y-4">
-          <!-- Main Search Section (initially visible) -->
-          <div id="search-section" class="flex flex-col flex-1 space-y-4">
-              <!-- Search Input Section -->
-              <div class="bg-white p-4 rounded-3xl shadow-lg flex flex-col space-y-4">
-                  <h2 class="text-lg font-semibold text-gray-700">Find Your Route</h2>
-                  <div class="relative">
-                      <input id="destination-input" type="text" placeholder="Enter your destination..."
-                          class="w-full p-3 pl-10 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                      <!-- SVG icon for the search input -->
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                  </div>
-                  <!-- The search button -->
-                  <button id="search-button"
-                      class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95">
-                      Search Route
-                  </button>
-              </div>
-              
-              <!-- Section to display the search results -->
-              <div id="results-container" class="flex-1 bg-white p-4 rounded-3xl shadow-lg overflow-y-auto">
-                  <h2 class="text-lg font-semibold text-gray-700 mb-2">Available Routes</h2>
-                  <div id="route-list" class="space-y-4">
-                      <!-- Route cards will be dynamically added here by JavaScript -->
-                  </div>
-                  <div id="no-results-message" class="hidden text-center text-gray-500 p-4">
-                      No routes found.
-                  </div>
-                  <div id="loading-spinner" class="hidden flex justify-center p-8">
-                      <div class="spinner"></div>
-                  </div>
-              </div>
-          </div>
-
-          <!-- Route Details Section (initially hidden) -->
-          <div id="details-section" class="hidden flex flex-col flex-1 space-y-4">
-            <div class="bg-white p-4 rounded-3xl shadow-lg">
-                <div class="vehicle-image"></div>
-                <h2 class="text-lg font-bold text-gray-700 mb-2">Route Details</h2>
-                <div class="flex items-center space-x-4 mb-4">
-                    <span id="fare-display" class="text-3xl font-bold text-green-600">R0.00</span>
-                    <span id="signal-display" class="text-5xl" role="img" aria-label="Hand Signal">👋</span>
-                </div>
-                <button id="back-button"
-                    class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full shadow-lg transition-all duration-300">
-                    Back to Search
-                </button>
+        <!-- Search Section -->
+        <div class="mb-6">
+            <div class="input-group">
+                <input type="text" id="destination-input" placeholder="Where are you going?" class="w-full p-3 pl-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-blue-500 transition-all duration-200">
+                <i class="fas fa-search icon"></i>
             </div>
-            <div class="route-details-map bg-white p-4 rounded-3xl shadow-lg">
-              <!-- Placeholder for the map, which will be loaded when needed -->
-              <p class="text-gray-500 text-center">Map will be shown here.</p>
-            </div>
-          </div>
-        </main>
+            <p class="text-sm text-gray-500 mt-2">Enter your destination to find taxi routes.</p>
+        </div>
 
-        <!-- Custom Modal/Alert Box -->
-        <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-xs mx-auto">
-                <p id="modal-message" class="text-lg font-medium text-gray-700"></p>
-                <button id="modal-ok-button" class="mt-4 bg-blue-500 text-white py-2 px-4 rounded-full">OK</button>
-            </div>
+        <!-- Route List Section -->
+        <div id="routes-container" class="space-y-4">
+            <!-- This message will show up while the app is loading the data from the database. -->
+            <div id="loading-message" class="text-center text-gray-500">Loading routes...</div>
+            <!-- Route cards will be automatically added here by our JavaScript code -->
         </div>
     </div>
 
-    <script>
-        // --- Core JavaScript Logic ---
+    <!-- Modal for Route Details -->
+    <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-75 hidden">
+        <div class="bg-white rounded-xl p-8 max-w-lg w-full relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-900 transition-all duration-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+            <h2 id="modal-title" class="text-2xl font-bold mb-4"></h2>
+            <p id="modal-details" class="text-gray-700 leading-relaxed"></p>
+        </div>
+    </div>
 
-        // Wait for the window to load before running our script
-        window.onload = function() {
-            // Get all the important elements from the HTML
-            const searchButton = document.getElementById('search-button');
-            const destinationInput = document.getElementById('destination-input');
-            const routeList = document.getElementById('route-list');
-            const noResultsMessage = document.getElementById('no-results-message');
-            const loadingSpinner = document.getElementById('loading-spinner');
-            const modal = document.getElementById('modal');
-            const modalMessage = document.getElementById('modal-message');
-            const modalOkButton = document.getElementById('modal-ok-button');
-            const searchSection = document.getElementById('search-section');
-            const detailsSection = document.getElementById('details-section');
-            const backButton = document.getElementById('back-button');
-            const fareDisplay = document.getElementById('fare-display');
-            const signalDisplay = document.getElementById('signal-display');
+    <!-- This is the JavaScript section where we'll handle the app's logic. -->
+    <script type="module">
+        // These lines are like "importing" the tools we need from Firebase.
+        // We get tools for connecting the app, for managing users, and for talking to the database.
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, where } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // These are special variables provided by this environment. They contain the "keys"
+        // to your unique database, so you don't need to create an account.
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        // These variables will hold our connection to the database and user info.
+        let db, auth, userId;
+        let isAuthReady = false;
 
-            // This is our mock data for the taxi routes. You will replace this with your real data.
-            // This is hardcoded here so you can test the app immediately.
-            const mockRoutes = [
-                { id: 1, destination: "Sandton City", fare: 25.00, rank: "Central", stops: ["Rosebank", "Park Station", "Sandton"], signal: "✊" },
-                { id: 2, destination: "Fourways Mall", fare: 30.00, rank: "Northern", stops: ["Randburg", "Northgate", "Fourways"], signal: "✋" },
-                { id: 3, destination: "Pretoria CBD", fare: 50.00, rank: "Central", stops: ["Midrand", "Centurion", "Pretoria"], signal: "✌️" },
-                { id: 4, destination: "Mall of Africa", fare: 20.00, rank: "Southern", stops: ["Kyalami", "Waterfall", "Midrand"], signal: "🤙" },
-                { id: 5, destination: "OR Tambo Airport", fare: 60.00, rank: "Eastern", stops: ["East Rand", "Kempton Park", "Airport"], signal: "🤟" },
-            ];
+        // We get the parts of our HTML that we need to change with JavaScript.
+        const routesContainer = document.getElementById('routes-container');
+        const destinationInput = document.getElementById('destination-input');
+        const modal = document.getElementById('modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDetails = document.getElementById('modal-details');
+        const loadingMessage = document.getElementById('loading-message');
 
-            // This function takes a list of routes and renders them on the page
-            function renderRoutes(routes) {
-                routeList.innerHTML = '';
-                if (routes.length > 0) {
-                    routes.forEach(route => {
-                        const card = createRouteCard(route);
-                        routeList.appendChild(card);
-                    });
-                    noResultsMessage.classList.add('hidden');
-                } else {
-                    noResultsMessage.classList.remove('hidden');
-                }
+        // This function will draw the route cards on the page.
+        function renderRoutes(routes) {
+            routesContainer.innerHTML = ''; // Clear out all old routes first.
+            if (routes.length === 0) {
+                // If there are no routes, show a friendly message.
+                routesContainer.innerHTML = '<p class="text-center text-gray-500">No routes found for that destination. Try searching for "Soweto" or "Sandton".</p>';
+                return;
             }
-
-            // This function creates a simple pop-up message box
-            function showMessage(message) {
-                modalMessage.textContent = message;
-                modal.classList.remove('hidden');
-            }
-
-            // Close the modal when the "OK" button is clicked
-            modalOkButton.addEventListener('click', () => {
-                modal.classList.add('hidden');
-            });
-
-            // This function takes a route object and creates an HTML card for it
-            function createRouteCard(route) {
-                const card = document.createElement('div');
-                card.className = "bg-gray-50 p-4 rounded-2xl shadow-sm border border-gray-200";
-                
-                // Convert the stops array to HTML span elements
-                const stopsHtml = (route.stops || []).map(stop => `<span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium mr-1 mb-1 px-2.5 py-0.5 rounded-full">${stop}</span>`).join('');
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="text-md font-bold text-gray-900">${route.destination || 'N/A'}</h3>
-                        <span class="text-xl font-bold text-green-600">R${(route.fare || 0).toFixed(2)}</span>
+            routes.forEach(route => {
+                const routeCard = document.createElement('div');
+                routeCard.className = 'route-card bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between';
+                routeCard.innerHTML = `
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">${route.destination}</h3>
+                        <p class="text-sm text-gray-600">From: ${route.rank}</p>
+                        <p class="text-sm text-gray-600">Fare: ${route.fare}</p>
                     </div>
-                    <p class="text-sm text-gray-500 mb-2">Rank: ${route.rank || 'N/A'}</p>
-                    <div class="flex flex-wrap items-center text-sm text-gray-500">
-                        ${stopsHtml}
-                    </div>
-                    <button class="select-route-button bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-full mt-4 w-full transition-colors duration-300">
-                      Select Route
-                    </button>
+                    <i class="fas fa-chevron-right text-gray-400"></i>
                 `;
-                // Add a click listener to the new "Select Route" button
-                card.querySelector('.select-route-button').addEventListener('click', () => {
-                    displayRouteDetails(route);
+                routeCard.addEventListener('click', () => showRouteDetails(route));
+                routesContainer.appendChild(routeCard);
+            });
+        }
+
+        // This function shows the big pop-up box with details about a route.
+        function showRouteDetails(route) {
+            modalTitle.textContent = `Route to ${route.destination}`;
+            modalDetails.innerHTML = `
+                <p class="mb-4"><strong>From:</strong> ${route.rank}</p>
+                <p class="mb-4"><strong>Estimated Fare:</strong> ${route.fare}</p>
+                <p class="mb-4"><strong>Key Stops:</strong> ${route.stops.join(', ')}</p>
+                <h4 class="font-semibold text-lg mb-2">Map:</h4>
+                <div class="rounded-xl overflow-hidden h-64">
+                    <iframe class="w-full h-full" src="${route.mapLink}" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                </div>
+            `;
+            modal.classList.remove('hidden');
+        }
+
+        // This function hides the pop-up box.
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        // This handles the search bar. When you type, it will find routes that match.
+        destinationInput.addEventListener('keyup', (e) => {
+            const queryText = e.target.value.toLowerCase();
+            const publicDataPath = `/artifacts/${appId}/public/data/routes`;
+            const routesCollection = collection(db, publicDataPath);
+
+            // We look for any documents where the 'destination_lower' field matches what the user typed.
+            const q = query(routesCollection, where("destination_lower", "==", queryText));
+            
+            // onSnapshot listens to the database in real-time. If it finds a match, it will update our screen.
+            onSnapshot(q, (snapshot) => {
+                const filteredRoutes = [];
+                snapshot.forEach(doc => {
+                    filteredRoutes.push(doc.data());
+                });
+                renderRoutes(filteredRoutes);
+            }, (error) => {
+                console.error("Error searching for routes: ", error);
+            });
+        });
+
+        // Event listener to close the modal.
+        closeModalBtn.addEventListener('click', closeModal);
+        // Close modal when clicking outside of it.
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // This is the most important part! It listens for changes in our database in real-time.
+        const setupRealtimeListener = () => {
+            if (!isAuthReady) {
+                console.log("Authentication not ready. Skipping listener setup.");
+                return;
+            }
+            
+            // This is the specific "address" of our public data collection in the database.
+            // The `appId` makes sure it's unique to you.
+            const publicDataPath = `/artifacts/${appId}/public/data/routes`;
+            const routesCollection = collection(db, publicDataPath);
+
+            // onSnapshot will run this function every time the data changes.
+            onSnapshot(routesCollection, (snapshot) => {
+                loadingMessage.style.display = 'none'; // Hide the loading message now that we have data.
+                const allRoutes = [];
+                snapshot.forEach((doc) => {
+                    allRoutes.push(doc.data());
+                });
+                renderRoutes(allRoutes); // Show all the routes we found.
+            }, (error) => {
+                console.error("Error listening to collection:", error);
+                loadingMessage.style.display = 'none';
+                routesContainer.innerHTML = '<p class="text-center text-red-500">Error fetching routes. Please try again later.</p>';
+            });
+        };
+
+        // This is the very first function that runs when the app loads.
+        const initializeFirebase = async () => {
+            try {
+                // We connect to the Firebase service using the special "keys."
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // We get a temporary user ID so we can access the database.
+                // This is safe because our database rules only allow public data to be read.
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // When the user is signed in, this function runs.
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        isAuthReady = true;
+                        console.log("Authenticated user ID:", user.uid);
+                        // Now that we are signed in, we can start listening for data.
+                        setupRealtimeListener();
+                    } else {
+                        console.error("Authentication failed.");
+                        isAuthReady = true;
+                    }
                 });
 
-                return card;
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
             }
-
-            // This function handles the search logic
-            function findRoutes() {
-                const query = destinationInput.value.toLowerCase().trim();
-                
-                // Show loading spinner
-                loadingSpinner.classList.remove('hidden');
-                routeList.innerHTML = '';
-                noResultsMessage.classList.add('hidden');
-
-                // Simulate a network delay for a smooth user experience
-                setTimeout(() => {
-                    const filteredRoutes = mockRoutes.filter(route =>
-                        (route.destination && route.destination.toLowerCase().includes(query)) ||
-                        (route.stops && route.stops.some(stop => stop.toLowerCase().includes(query)))
-                    );
-
-                    loadingSpinner.classList.add('hidden');
-                    renderRoutes(filteredRoutes);
-                }, 500);
-            }
-
-            // This function displays the route details screen
-            function displayRouteDetails(route) {
-                searchSection.classList.add('hidden');
-                detailsSection.classList.remove('hidden');
-                
-                fareDisplay.textContent = `R${route.fare.toFixed(2)}`;
-                signalDisplay.textContent = route.signal;
-                
-                // TODO: Here you will add the logic to display the map
-                // and the vehicle image dynamically
-            }
-
-            // Add a click listener to the back button
-            backButton.addEventListener('click', () => {
-                detailsSection.classList.add('hidden');
-                searchSection.classList.remove('flex'); // Add back the flex class
-                searchSection.classList.remove('hidden');
-                // Re-render the initial list of routes
-                renderRoutes(mockRoutes);
-            });
-            
-            // Add a click listener to the search button
-            searchButton.addEventListener('click', findRoutes);
-            
-            // Allow searching by pressing the 'Enter' key on the input field
-            destinationInput.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter') {
-                    findRoutes();
-                }
-            });
-
-            // Initial population of all routes
-            renderRoutes(mockRoutes);
         };
+
+        // We tell the browser to run our `initializeFirebase` function as soon as the page is ready.
+        window.onload = initializeFirebase;
     </script>
 </body>
 </html>
